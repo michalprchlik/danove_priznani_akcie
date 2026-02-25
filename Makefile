@@ -21,15 +21,3 @@ check:
 	python3 -m safety check --file requirements.txt
 	python3 -m safety check --file requirements_lint.txt
 
-create-schedule:
-	-gcloud scheduler jobs delete growatt-scheduler \
-	--location=$(REGION)
-
-	gcloud scheduler jobs create http growatt-scheduler \
-	--schedule="0 * * * *" \
-	--uri="https://europe-west1-growatt-471616.cloudfunctions.net/util" \
-	--http-method=POST \
-	--headers content-type=application/json \
-	--message-body '{}' \
-	--location=$(REGION) \
-	--oidc-service-account-email=${SERVICE_ACCOUNT_EMAIL}

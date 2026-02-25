@@ -25,10 +25,10 @@ logging.basicConfig(
 )
 
 
-USD_CZK=100
-EUR_CZK=100
-GBP_CZK=100
-CZK_CZK=100
+USD_CZK=21.84
+EUR_CZK=24.66
+CZK_CZK=1
+
 
 
 def run(request_json):
@@ -74,7 +74,10 @@ def run(request_json):
             cash_data = read_cash_operations_sheet(file)
 
             if cash_data is not None:
-                data = parse_xml_file(cash_data,value_list, data)
+                data = parse_xml_file(cash_data,value_list, base_currency, data)
+
+    print('--------------------------------')
+    data = convert_currency_to_czk(data)
 
 
     # print(data)
@@ -129,7 +132,7 @@ def filter_rows_by_values(dataframe, column_index, values):
     return filtered_rows
 
 
-def parse_xml_file(cash_data, value_list, data):
+def parse_xml_file(cash_data, value_list, base_currency, data):
     # print(cash_data)
 
     result = filter_rows_by_values(cash_data, 0, value_list)
@@ -137,7 +140,7 @@ def parse_xml_file(cash_data, value_list, data):
     # print(list_of_rows)
 
     for row in list_of_rows:
-        key = get_key(row)
+        key = get_key(base_currency, row)
 
         if key == 'DE-GBP':
             print(row)
@@ -158,7 +161,7 @@ def parse_xml_file(cash_data, value_list, data):
 
 
 
-def get_key(row):
+def get_key(base_currency, row):
 
     text = row[5]
     # Regulární výraz pro extrakci klíče
@@ -169,7 +172,7 @@ def get_key(row):
 
     if match:
         # Vytvoření klíče ve tvaru MONET.CZ-CZK
-        key = f"{match.group(1)}-{match.group(2)}"
+        key = f"{base_currency}-{match.group(1)}-{match.group(2)}"
         # print("Extrahovaný klíč:", key)
     else:
         key = ''
@@ -186,10 +189,9 @@ def update_data(row, data, key):
     elif row[0] == 'Withholding tax':
         # Nastavení sazby a přičtení daně
         data[key]['tax_rate'] = get_tax_rate(row)
-        data[key]['tax'] += float(row[3])
+        data[key]['tax'] += abs(float(row[3]))
 
     return data
-
 
 def get_tax_rate(row):
 
@@ -207,6 +209,51 @@ def get_tax_rate(row):
         pass
 
     return tax_rate
+
+
+
+
+def convert_currency_to_czk(data):
+    for key, values in data.items():
+        pattern = r'^([A-Z]+)-([A-Z]+)-([A-Z]+)$'
+
+        match = re.search(pattern, key)
+
+        if match:
+            currency = match.group(1)
+            state = match.group(2)
+            tax_rate=values['tax_rate']
+
+            if currency == 'EUR':
+                dividend = data[key]['dividend'] * EUR_CZK
+                tax = data[key]['tax'] * EUR_CZK
+            elif currency == 'USD':
+                dividend = data[key]['dividend'] * USD_CZK
+                tax = data[key]['tax'] * USD_CZK
+            elif currency == 'GBP':
+                dividend = data[key]['dividend'] * GBP_CZK
+                tax = data[key]['tax'] * GBP_CZK
+            elif currency == 'CZK':
+                dividend = data[key]['dividend'] * CZK_CZK
+                tax = data[key]['tax'] * CZK_CZK
+            else:
+                print(f'unknown currency: {currency}')
+
+            to_pay = dividend / 100 * 15
+
+            if to_pay > tax:
+                to_pay = to_pay - tax
+
+            else:
+                to_pay = 0 
+
+            dividend = round(dividend)
+            tax = round(tax)
+            to_pay = round(to_pay)
+
+            print(f"currency={currency}, state={state}, dividend={dividend}, tax={tax}, tax_rate={tax_rate}, to_pay={to_pay}")
+
+
 
 
 if __name__ == "__main__":
