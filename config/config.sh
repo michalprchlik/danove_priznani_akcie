@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+USD_CZK=100
+EUR_CZK=100
+GBP_CZK=100
+CZK_CZK=100

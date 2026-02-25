@@ -1,0 +1,3 @@
+requests_mock==1.12.1
+freezegun==1.5.1
+mock
