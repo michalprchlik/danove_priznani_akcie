@@ -11,13 +11,13 @@ test:
 	podman run --rm function_test
 
 lint:
-	python3 -m autoflake main.py run.py  price.py ote.py 
-	python3 -m black --config pyproject.toml main.py run.py  price.py ote.py 
-	python3 -m pylint main.py run.py  price.py ote.py 
+	python3 -m autoflake run.py modules
+	python3 -m black --config pyproject.toml run.py modules
+	python3 -m pylint run.py modules
 
 check:
 	python3 -m pip list --outdated
-	python3 -m bandit --config pyproject.toml --recursive --quiet main.py run.py  price.py ote.py 
+	python3 -m bandit --config pyproject.toml --recursive --quiet run.py
 	python3 -m safety check --file requirements.txt
 	python3 -m safety check --file requirements_lint.txt
 
